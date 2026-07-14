@@ -1,0 +1,376 @@
+// Prisma schema for Portal FYP TVET (JTM)
+// Reference: PRD-JTM-TVET-FYP-2026-v1.0 §11.1
+// Adapted for SQLite (UUID→String/cuid, jsonb→String, check constraints enforced at app layer)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ REFERENCE / MASTER TABLES ============
+
+model Institution {
+  id        String   @id @default(cuid())
+  code      String   @unique // ILP-Bangi, IKBN-Setapak, etc.
+  name      String
+  type      String   // ILP | IKBN | ADTEC
+  state     String
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users      User[]
+  projects   Project[]
+  equipment  Equipment[]
+  supervisors Supervisor[]
+}
+
+model Program {
+  id          String   @id @default(cuid())
+  code        String   @unique // EK | RAC
+  name        String   // Elektrik Kuasa | Penyejukbekuan & Penyamanan Udara
+  field       String   // Elektrik Kuasa | RAC
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  projects    Project[]
+}
+
+// ============ USER MANAGEMENT ============
+
+// Note: SQLite doesn't support Prisma enums; role values enforced as String at app layer
+// UserRole values: STUDENT | SUPERVISOR | PANEL | INSTITUTION_ADMIN | JTM_ADMIN | DEVOPS
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  fullName      String
+  role          String   @default("STUDENT") // UserRole values
+  phone         String?
+  avatarUrl     String?
+  institutionId String?
+  programId     String?
+  session       String?  // academic session e.g. "2025/2026"
+  isActive      Boolean  @default(true)
+  mfaEnabled    Boolean  @default(false)
+  lastLoginAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  institution Institution? @relation(fields: [institutionId], references: [id])
+  program     Program?     @relation(fields: [programId], references: [id])
+
+  student          Student?
+  supervisor       Supervisor?
+  projectsCreated  Project[]      @relation("ProjectCreatedBy")
+  evaluations      Evaluation[]
+  equipmentBookings EquipmentBooking[]
+  aiChatLogs       AiChatLog[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  documents        Document[]
+  logbookEntries   LogbookEntry[]
+  loginAttempts    LoginAttempt[]
+}
+
+model Student {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  registrationNo String   @unique // student reg number
+  cohort         String?  // e.g. "2024/2025"
+  supervisorId   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supervisor Supervisor? @relation(fields: [supervisorId], references: [id])
+
+  projects        Project[]
+  projectMembers  ProjectMember[]
+}
+
+model Supervisor {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  staffNo         String   @unique
+  expertiseField  String?  // Elektrik Kuasa | RAC | Both
+  maxStudents     Int      @default(15)
+  institutionId   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution  Institution?   @relation(fields: [institutionId], references: [id])
+  students     Student[]
+  projects     Project[]
+}
+
+// ============ PROJECT (FYP) ============
+
+// ProjectStatus values: DRAFT | SUBMITTED | UNDER_REVIEW | APPROVED | REJECTED | COMPLETED
+
+model Project {
+  id              String   @id @default(cuid())
+  title           String
+  field           String   // Elektrik Kuasa | RAC
+  scope           String
+  objectives      String
+  bomList         String?  // Bill of Materials (JSON string)
+  scheduleStart   DateTime?
+  scheduleEnd     DateTime?
+  studentId       String?
+  supervisorId    String?
+  institutionId   String?
+  programId       String?
+  status          String   @default("DRAFT") // ProjectStatus values
+  similarityScore Float    @default(0) // 0-100 percentage
+  rejectionReason String?
+  approvedAt      DateTime?
+  completedAt     DateTime?
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  student      Student?      @relation(fields: [studentId], references: [id])
+  supervisor   Supervisor?   @relation(fields: [supervisorId], references: [id])
+  institution  Institution?  @relation(fields: [institutionId], references: [id])
+  program      Program?      @relation(fields: [programId], references: [id])
+  createdBy    User          @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+
+  logbookEntries LogbookEntry[]
+  documents      Document[]
+  milestones     Milestone[]
+  evaluations    Evaluation[]
+  projectMembers ProjectMember[]
+  aiChatLogs     AiChatLog[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  studentId String
+  role      String   @default("MEMBER") // LEADER | MEMBER
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, studentId])
+}
+
+// ============ LOGBOOK ============
+
+model LogbookEntry {
+  id          String   @id @default(cuid())
+  projectId   String
+  studentId   String?  // recorded-by user (student)
+  weekNumber  Int
+  entryDate   DateTime @default(now())
+  tasksDone   String
+  hoursWorked Float    @default(0)
+  issuesFaced String?
+  attachments String?  // JSON array of URLs
+  status      String   @default("PENDING") // PENDING | SIGNED_OFF | REJECTED
+  signedOffAt DateTime?
+  signedOffById String?
+  supervisorComment String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  student User?   @relation(fields: [studentId], references: [id])
+
+  @@unique([projectId, weekNumber])
+}
+
+// ============ DOCUMENTS ============
+
+model Document {
+  id           String   @id @default(cuid())
+  projectId    String
+  uploadedById String
+  type         String   // PROPOSAL | DRAFT_CHAPTER | FINAL_REPORT | POSTER | VIDEO_DEMO | BOM
+  title        String
+  fileName     String
+  filePath     String   // storage path or URL
+  fileSize     Int      @default(0)
+  mimeType     String?
+  version      Int      @default(1)
+  status       String   @default("UPLOADED") // UPLOADED | UNDER_REVIEW | REVIEWED | APPROVED
+  comments     String?  // JSON array of annotations
+  reviewedAt   DateTime?
+  reviewedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy User   @relation(fields: [uploadedById], references: [id])
+}
+
+// ============ MILESTONES ============
+
+model Milestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String   // Cadangan | Progress 1 | Progress 2 | Viva | Penyerahan Akhir
+  stage       String   // PROPOSAL | PROGRESS_1 | PROGRESS_2 | VIVA | FINAL_SUBMISSION
+  dueDate     DateTime
+  completedAt DateTime?
+  status      String   @default("PENDING") // PENDING | IN_PROGRESS | COMPLETED | OVERDUE
+  notes       String?
+  vivaSlot    DateTime? // scheduled viva session time
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ============ RUBRICS & EVALUATIONS ============
+
+model Rubric {
+  id          String   @id @default(cuid())
+  name        String
+  field       String   // Elektrik Kuasa | RAC | Both
+  evalType    String   // supervisor_progress | panel_viva | final_report
+  criteria    String   // JSON array of {criterion, maxScore, weight}
+  totalWeight Int      @default(100)
+  isActive    Boolean  @default(true)
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  evaluations Evaluation[]
+}
+
+model Evaluation {
+  id             String   @id @default(cuid())
+  projectId      String
+  evaluatorId    String
+  rubricId       String
+  criterionScores String // JSON object {criterion_key: score}
+  totalScore     Float   @default(0)
+  evalType       String  // supervisor_progress | panel_viva | final_report
+  comments       String?
+  submittedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  evaluator User    @relation(fields: [evaluatorId], references: [id])
+  rubric    Rubric  @relation(fields: [rubricId], references: [id])
+}
+
+// ============ EQUIPMENT INVENTORY ============
+
+model Equipment {
+  id             String   @id @default(cuid())
+  name           String
+  code           String   @unique
+  category       String   // Elektrik Kuasa | RAC | General
+  specification  String?
+  institutionId  String?
+  status         String   @default("AVAILABLE") // AVAILABLE | BOOKED | UNDER_MAINTENANCE | RETIRED
+  quantity       Int      @default(1)
+  availableQty   Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  institution Institution?       @relation(fields: [institutionId], references: [id])
+  bookings    EquipmentBooking[]
+}
+
+model EquipmentBooking {
+  id           String   @id @default(cuid())
+  equipmentId  String
+  studentId    String
+  projectId    String?
+  bookingStart DateTime
+  bookingEnd   DateTime
+  purpose      String
+  status       String   @default("PENDING") // PENDING | APPROVED | REJECTED | RETURNED | CANCELLED
+  approvedById String?
+  approvedAt   DateTime?
+  returnNotes  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  student   User       @relation(fields: [studentId], references: [id])
+}
+
+// ============ AI CHAT LOGS ============
+
+model AiChatLog {
+  id            String   @id @default(cuid())
+  userId        String
+  projectId     String?
+  prompt        String
+  response      String
+  moduleContext String   // logbook_review | proposal_help | technical_qa | feedback_draft
+  modelVersion  String   @default("glm-4.6")
+  rating        Int?     // optional user feedback 1-5
+  tokensUsed    Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id])
+}
+
+// ============ NOTIFICATIONS ============
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // INFO | WARNING | SUCCESS | DEADLINE | APPROVAL | COMMENT
+  category  String   // PROJECT | LOGBOOK | DOCUMENT | EVALUATION | EQUIPMENT | SYSTEM
+  relatedId String?  // generic FK reference id
+  isRead    Boolean  @default(false)
+  actionUrl String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============ AUDIT LOGS ============
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // e.g. APPROVE_PROPOSAL, REJECT_LOGBOOK, SUBMIT_EVALUATION
+  entity    String   // Project | LogbookEntry | Evaluation | User ...
+  entityId  String?
+  before    String?  // JSON snapshot before change
+  after     String?  // JSON snapshot after change
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
+
+// ============ SECURITY: LOGIN ATTEMPTS (rate limiting / brute force protection) ============
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String
+  ipAddress String?
+  success   Boolean
+  reason    String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
+
+// ============ PROJECT REPOSITORY (ARCHIVE) ============
+// Completed projects are searchable via Project where status=COMPLETED.
+// An additional archive metadata table could be added; for now we rely on Project status.
