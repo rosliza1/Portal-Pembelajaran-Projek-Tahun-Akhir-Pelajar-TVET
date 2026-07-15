@@ -117,3 +117,32 @@ Stage Summary:
 - AI Assistant (GLM-4.6) working server-side with logging + rate limiting + disclaimer
 - Jotform chatbot embedded as requested
 - Demo credentials: all accounts use password "Portal@2026"
+
+---
+Task ID: 12
+Agent: Orchestrator (main)
+Task: Generate Supabase SQL files (schema + seed) for user's Supabase project
+
+Work Log:
+- Updated .env with Supabase PostgreSQL connection string (password URL-encoded: Airul%40026jtm)
+- Changed prisma/schema.prisma provider to postgresql
+- Attempted db:push — discovered sandbox blocks outbound port 5432 (only HTTPS 443 allowed)
+- Generated bcrypt hash for password 'Portal@2026' (all demo accounts)
+- Wrote prisma/gen-supabase-seed.ts — reads existing SQLite data, outputs PostgreSQL INSERT statements
+- Generated 3 SQL files:
+  • supabase-schema.sql (367 lines) — 17 table CREATE statements + indexes
+  • supabase-seed.sql (874 lines) — all INSERT statements with data
+  • supabase-complete.sql (1241 lines, 340KB) — combined schema + seed in one file
+- Verified record counts: 5 institutions, 2 programs, 42 users, 8 supervisors, 27 students, 25 projects, 126 logbook entries, 49 documents, 125 milestones, 4 rubrics, 22 evaluations, 15 equipment, 12 bookings, 61 AI chat logs, 64 notifications, 66 audit logs
+- Reverted sandbox config back to SQLite (provider + .env) so demo continues working
+- Added deployment instructions in .env comments
+- Verified demo app still works: login API returns 200, student login successful
+
+Stage Summary:
+- 3 SQL files ready for user to run in Supabase SQL Editor:
+  1. supabase-schema.sql — run first (creates 17 tables + indexes)
+  2. supabase-seed.sql — run second (populates all dummy data)
+  3. supabase-complete.sql — all-in-one (schema + seed)
+- Password for all users: Portal@2026 (bcrypt hashed in SQL)
+- When deploying: change schema.prisma provider to "postgresql" + set DATABASE_URL to Supabase connection string
+- Sandbox demo continues on local SQLite for preview

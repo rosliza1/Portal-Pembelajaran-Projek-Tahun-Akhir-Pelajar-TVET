@@ -7,7 +7,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  // NOTE: Change to "postgresql" when deploying to Supabase/production
+  // The supabase-schema.sql and supabase-seed.sql files are ready for your Supabase project.
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
