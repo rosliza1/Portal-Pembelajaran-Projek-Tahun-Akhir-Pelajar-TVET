@@ -177,3 +177,28 @@ Stage Summary:
 - User needs to download archive and push from their machine
 - Archives available in download/ folder: Portal-FYP-TVET.tar.gz and Portal-FYP-TVET.zip
 - Instructions provided in deploy-to-github.sh and chat
+
+---
+Task ID: 14
+Agent: Orchestrator (main)
+Task: Direct push to GitHub repo with user-provided PAT
+
+Work Log:
+- User provided GitHub Personal Access Token (ghp_***)
+- Configured remote URL with token authentication
+- Verified remote repo was empty (no existing content to merge)
+- Pushed main branch: 144 files, 5 commits
+- Push succeeded: 4ccdfd8 HEAD → origin/main
+- Found residual password reference in worklog.md (in a redaction description line)
+- Fixed immediately: committed and pushed security fix (bf49570)
+- Verified ZERO secrets across all 144 files in GitHub repo
+- Removed token from git config (security)
+- Token cleared from remote URL after push
+
+Stage Summary:
+- ✅ Repo live at: https://github.com/rosliza1/Portal-Pembelajaran-Projek-Tahun-Akhir-Pelajar-TVET
+- ✅ 144 files pushed (all source code, schema, SQL files, README, setup guide)
+- ✅ Zero secrets exposed (.env, passwords, tokens all excluded)
+- ✅ Branch: main (default)
+- ✅ Ready for Netlify deployment
+- ⚠️ User should revoke the PAT at https://github.com/settings/tokens (no longer needed)
