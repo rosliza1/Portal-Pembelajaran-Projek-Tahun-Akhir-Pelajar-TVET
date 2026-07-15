@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -52,3 +53,19 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# Database files (local SQLite — use Supabase in production)
+/db/
+*.db
+*.db-journal
+
+# Screenshots and temp images
+*.png
+*.jpg
+*.jpeg
+*.webp
+/tool-results/
+
+# Agent context
+/agent-ctx/
+gen-sql.sh
