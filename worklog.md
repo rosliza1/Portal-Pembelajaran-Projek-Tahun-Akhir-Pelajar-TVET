@@ -146,3 +146,34 @@ Stage Summary:
 - Password for all users: Portal@2026 (bcrypt hashed in SQL)
 - When deploying: change schema.prisma provider to "postgresql" + set DATABASE_URL to Supabase connection string
 - Sandbox demo continues on local SQLite for preview
+
+---
+Task ID: 13
+Agent: Orchestrator (main)
+Task: Deploy project to GitHub repo (rosliza1/Portal-Pembelajaran-Projek-Tahun-Akhir-Pelajar-TVET)
+
+Work Log:
+- Added GitHub remote: https://github.com/rosliza1/Portal-Pembelajaran-Projek-Tahun-Akhir-Pelajar-TVET.git
+- Configured git user identity (rosliza1)
+- Updated .gitignore: added /db/, *.db, *.png, /tool-results/, /agent-ctx/, /download/, !.env.example
+- Created .env.example (template with placeholder password — no real secrets)
+- Created README.md (comprehensive project documentation)
+- Created SUPABASE-SETUP-GUIDE.md (step-by-step Supabase setup)
+- SECURITY: Removed .env (with real Supabase password) from git tracking
+- SECURITY: Removed db/custom.db (SQLite with user data) from tracking
+- SECURITY: Removed screenshots, agent-ctx, .zscripts from tracking
+- SECURITY: Redacted all passwords from worklog.md and setup guide (Airul%40026jtm → YOUR_PASSWORD)
+- Verified ZERO secrets in all tracked files (grep confirmed 0 matches)
+- Committed all changes with descriptive commit messages
+- Attempted git push — failed (sandbox has no GitHub credentials: no PAT, no SSH keys, no gh CLI)
+- Created clean git archive: download/Portal-FYP-TVET.tar.gz (439KB, 189 files)
+- Created zip version: download/Portal-FYP-TVET.zip (547KB) for Windows users
+- Both archives verified clean: no .env, no .db, no node_modules, no secrets
+- Created deploy-to-github.sh helper script with instructions
+
+Stage Summary:
+- Local repo is fully committed and ready (158 tracked files, zero secrets)
+- Cannot push directly (no GitHub auth in sandbox)
+- User needs to download archive and push from their machine
+- Archives available in download/ folder: Portal-FYP-TVET.tar.gz and Portal-FYP-TVET.zip
+- Instructions provided in deploy-to-github.sh and chat
