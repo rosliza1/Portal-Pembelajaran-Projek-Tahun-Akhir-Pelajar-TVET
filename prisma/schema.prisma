@@ -7,8 +7,8 @@ generator client {
 }
 
 datasource db {
-  // NOTE: Change to "postgresql" when deploying to Supabase/production
-  // The supabase-schema.sql and supabase-seed.sql files are ready for your Supabase project.
+  // Schema kept for reference — runtime uses Supabase REST API adapter (src/lib/db.ts)
+  // When deploying to Netlify: change to "postgresql" and use Prisma normally
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
