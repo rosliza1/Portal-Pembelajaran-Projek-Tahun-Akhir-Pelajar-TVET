@@ -124,7 +124,7 @@ Agent: Orchestrator (main)
 Task: Generate Supabase SQL files (schema + seed) for user's Supabase project
 
 Work Log:
-- Updated .env with Supabase PostgreSQL connection string (password URL-encoded: Airul%40026jtm)
+- Updated .env with Supabase PostgreSQL connection string (password URL-encoded: YOUR_PASSWORD)
 - Changed prisma/schema.prisma provider to postgresql
 - Attempted db:push — discovered sandbox blocks outbound port 5432 (only HTTPS 443 allowed)
 - Generated bcrypt hash for password 'Portal@2026' (all demo accounts)

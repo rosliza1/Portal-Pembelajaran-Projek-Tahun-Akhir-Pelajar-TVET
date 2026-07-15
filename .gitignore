@@ -69,3 +69,6 @@ server.log
 # Agent context
 /agent-ctx/
 gen-sql.sh
+
+# Download folder (temporary exports)
+/download/
