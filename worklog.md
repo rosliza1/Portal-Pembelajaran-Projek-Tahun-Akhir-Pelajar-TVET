@@ -162,7 +162,7 @@ Work Log:
 - SECURITY: Removed .env (with real Supabase password) from git tracking
 - SECURITY: Removed db/custom.db (SQLite with user data) from tracking
 - SECURITY: Removed screenshots, agent-ctx, .zscripts from tracking
-- SECURITY: Redacted all passwords from worklog.md and setup guide (Airul%40026jtm → YOUR_PASSWORD)
+- SECURITY: Redacted all passwords from worklog.md and setup guide (redacted → YOUR_PASSWORD)
 - Verified ZERO secrets in all tracked files (grep confirmed 0 matches)
 - Committed all changes with descriptive commit messages
 - Attempted git push — failed (sandbox has no GitHub credentials: no PAT, no SSH keys, no gh CLI)
